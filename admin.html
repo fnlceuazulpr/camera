@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Transmissão ao Vivo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#0f0e0e;--surface:#1a1818;--border:#2e2b2b;--gold:#c9a84c;--gold-light:#e8c97a;--text:#e8e4e0;--muted:#7a7470;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;display:flex;align-items:center;justify-content:center;}
+    #login-screen{width:100%;max-width:400px;padding:2rem;text-align:center;}
+    .logo{font-family:'Cormorant Garamond',serif;font-size:1.5rem;font-weight:300;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.5rem;}
+    .logo-sub{font-size:0.7rem;letter-spacing:0.3em;color:var(--muted);text-transform:uppercase;margin-bottom:3rem;}
+    .login-box{background:var(--surface);border:1px solid var(--border);padding:2.5rem;}
+    .login-box h2{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.3rem;margin-bottom:2rem;color:var(--text);}
+    input[type="password"],input[type="text"],input[type="number"],select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'Jost',sans-serif;font-size:0.9rem;font-weight:300;padding:0.85rem 1rem;outline:none;transition:border-color 0.2s;margin-bottom:1rem;}
+    input:focus,select:focus{border-color:var(--gold);}
+    select option{background:var(--surface);}
+    button{width:100%;background:transparent;border:1px solid var(--gold);color:var(--gold);font-family:'Jost',sans-serif;font-size:0.8rem;font-weight:400;letter-spacing:0.2em;text-transform:uppercase;padding:0.85rem;cursor:pointer;transition:all 0.2s;}
+    button:hover{background:var(--gold);color:var(--bg);}
+    .error{color:#c0392b;font-size:0.8rem;margin-top:1rem;display:none;}
+    #admin-panel{display:none;width:100%;max-width:600px;padding:2rem;}
+    .panel-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:2rem;padding-bottom:1rem;border-bottom:1px solid var(--border);}
+    .panel-header .logo{margin-bottom:0;}
+    .logout-btn{width:auto;padding:0.5rem 1.2rem;font-size:0.7rem;}
+    .form-card{background:var(--surface);border:1px solid var(--border);padding:2rem;margin-bottom:2rem;}
+    .form-card h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.2rem;margin-bottom:1.5rem;color:var(--gold);}
+    label{display:block;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);margin-bottom:0.4rem;}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+    .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem;}
+    .warning-box{background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.4);padding:0.9rem 1rem;margin-bottom:1.2rem;font-size:0.8rem;color:var(--gold);line-height:1.6;border-radius:2px;}
+    .result-card{background:var(--surface);border:1px solid var(--gold);padding:2rem;display:none;animation:fadeIn 0.4s ease;margin-top:1rem;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+    .result-card h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.2rem;margin-bottom:1.5rem;color:var(--gold);}
+    .link-display{background:var(--bg);border:1px solid var(--border);padding:1rem;font-size:0.75rem;color:var(--gold-light);word-break:break-all;margin-bottom:1rem;font-family:monospace;}
+    .info-row{display:flex;justify-content:space-between;font-size:0.8rem;color:var(--muted);margin-bottom:1.5rem;}
+    .copy-btn{background:var(--gold);color:var(--bg);border-color:var(--gold);}
+    .copy-btn:hover{background:var(--gold-light);border-color:var(--gold-light);}
+    .active-links{background:var(--surface);border:1px solid var(--border);padding:2rem;margin-top:2rem;}
+    .active-links h3{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:1.2rem;margin-bottom:1.5rem;color:var(--text);}
+    .link-item{border-bottom:1px solid var(--border);padding:1rem 0;display:flex;justify-content:space-between;align-items:center;font-size:0.85rem;}
+    .link-item:last-child{border-bottom:none;}
+    .link-name{color:var(--text);}
+    .link-expiry{color:var(--muted);font-size:0.75rem;}
+    .link-expired{color:#c0392b;font-size:0.75rem;}
+    .revoke-btn{width:auto;padding:0.3rem 0.8rem;font-size:0.65rem;border-color:#c0392b;color:#c0392b;}
+    .revoke-btn:hover{background:#c0392b;color:white;}
+    .empty-msg{color:var(--muted);font-size:0.85rem;text-align:center;padding:1rem 0;}
+    .status-msg{font-size:0.75rem;color:var(--muted);margin-top:0.8rem;text-align:center;min-height:1.2em;}
+    .toggle-row{display:flex;align-items:center;gap:1rem;margin-bottom:1rem;}
+    .toggle-label{font-size:0.8rem;color:var(--text);}
+    .cam-toggle{display:flex;gap:0.5rem;margin-bottom:1rem;}
+    .cam-btn{flex:1;padding:0.6rem;font-size:0.8rem;letter-spacing:0.1em;}
+    .cam-btn.active{background:var(--gold);color:var(--bg);}
+    #cam2-fields{display:block;}
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="logo">Funerária Largo</div>
+  <div class="logo-sub">Painel Administrativo</div>
+  <div class="login-box">
+    <h2>Acesso Restrito</h2>
+    <input type="password" id="password-input" placeholder="Senha" onkeydown="if(event.key==='Enter') doLogin()" />
+    <button onclick="doLogin()">Entrar</button>
+    <div class="error" id="login-error">Senha incorreta.</div>
+  </div>
+</div>
+
+<div id="admin-panel">
+  <div class="panel-header">
+    <div>
+      <div class="logo">Funerária Largo</div>
+      <div class="logo-sub">Painel Administrativo</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sair</button>
+  </div>
+
+  <div class="form-card">
+    <h3>Gerar Novo Link de Transmissão</h3>
+    <div class="warning-box">⚠️ Gerar um novo link revoga automaticamente todos os links anteriores.</div>
+
+    <label>Nome do Falecido</label>
+    <input type="text" id="nome" placeholder="Ex: João da Silva" />
+
+    <div class="form-row">
+      <div>
+        <label>Duração</label>
+        <input type="number" id="duracao" value="48" min="1" max="720" />
+      </div>
+      <div>
+        <label>Unidade</label>
+        <select id="unidade">
+          <option value="60">Minutos</option>
+          <option value="3600" selected>Horas</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Câmeras</label>
+    <div class="cam-toggle">
+      <button class="cam-btn" id="btn-1cam" onclick="setCams(1)">1 Câmera</button>
+      <button class="cam-btn active" id="btn-2cam" onclick="setCams(2)">2 Câmeras</button>
+    </div>
+
+    <div id="cam2-fields">
+      <label>Intervalo de alternância (segundos)</label>
+      <input type="number" id="intervalo" value="60" min="5" max="300" />
+    </div>
+
+    <button onclick="gerarLink()" id="gerar-btn">Gerar Link</button>
+    <div class="status-msg" id="status-msg"></div>
+  </div>
+
+  <div class="result-card" id="result-card">
+    <h3>Link Gerado</h3>
+    <div class="link-display" id="link-gerado"></div>
+    <div class="info-row">
+      <span id="info-nome"></span>
+      <span id="info-expiry"></span>
+    </div>
+    <button class="copy-btn" onclick="copiarLink()">Copiar Link</button>
+  </div>
+
+  <div class="active-links">
+    <h3>Links Ativos</h3>
+    <div id="links-list"></div>
+  </div>
+</div>
+
+<script>
+  const ADMIN_PASSWORD = "largo2025";
+  const BASE_URL = "https://fnlceuazulpr.github.io/camera/watch/";
+  const SECRET = "largo_fnl_2025";
+  const STORAGE_KEY = "velorio_links";
+  
+  
+  
+
+  let numCams = 2;
+
+  function setCams(n) {
+    numCams = n;
+    document.getElementById('btn-1cam').classList.toggle('active', n === 1);
+    document.getElementById('btn-2cam').classList.toggle('active', n === 2);
+    document.getElementById('cam2-fields').style.display = n === 2 ? 'block' : 'none';
+  }
+
+  function doLogin() {
+    const pwd = document.getElementById('password-input').value;
+    if (pwd === ADMIN_PASSWORD) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('admin-panel').style.display = 'block';
+      renderLinks();
+    } else {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+
+  function logout() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('admin-panel').style.display = 'none';
+    document.getElementById('password-input').value = '';
+  }
+
+  function gerarSessionId() {
+    return Math.random().toString(36).substring(2, 10).toUpperCase();
+  }
+
+  function gerarToken(nome, expiry, sessionId, cams, intervalo) {
+    const payload = nome + "|" + expiry + "|" + sessionId + "|" + cams + "|" + intervalo + "|" + SECRET;
+    const hash = btoa(unescape(encodeURIComponent(payload))).replace(/=/g, '').substring(0, 16);
+    const data = btoa(unescape(encodeURIComponent(nome + "|" + expiry + "|" + sessionId + "|" + cams + "|" + intervalo + "|" + hash)));
+    return data.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  }
+
+
+
+  function gerarLink() {
+    const nome = document.getElementById('nome').value.trim();
+    const duracao = parseInt(document.getElementById('duracao').value);
+    const unidade = parseInt(document.getElementById('unidade').value);
+    const intervalo = numCams === 2 ? parseInt(document.getElementById('intervalo').value) : 30;
+
+    if (!nome) return alert('Informe o nome do falecido.');
+    if (!duracao || duracao < 1) return alert('Informe a duração.');
+
+    const btn = document.getElementById('gerar-btn');
+    const status = document.getElementById('status-msg');
+    btn.disabled = true;
+    btn.textContent = 'Gerando...';
+    status.textContent = 'Atualizando sistema...';
+
+    const expiry = Date.now() + (duracao * unidade * 1000);
+    const sessionId = gerarSessionId();
+    const token = gerarToken(nome, expiry, sessionId, numCams, intervalo);
+    const link = BASE_URL + "?t=" + token;
+
+    saveLinks([{ token, nome, expiry, link, sessionId, cams: numCams, intervalo }]);
+
+    document.getElementById('link-gerado').textContent = link;
+    document.getElementById('info-nome').textContent = nome;
+    document.getElementById('info-expiry').textContent = `Expira em ${duracao} ${unidade === 3600 ? 'hora(s)' : 'minuto(s)'}`;
+    document.getElementById('result-card').style.display = 'block';
+    document.getElementById('nome').value = '';
+
+    btn.disabled = false;
+    btn.textContent = 'Gerar Link';
+    status.textContent = '✅ Link gerado com sucesso.';
+
+    renderLinks();
+  }
+
+  function copiarLink() {
+    const link = document.getElementById('link-gerado').textContent;
+    navigator.clipboard.writeText(link).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar Link', 2000);
+    });
+  }
+
+  function getLinks() { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  function saveLinks(links) { localStorage.setItem(STORAGE_KEY, JSON.stringify(links)); }
+
+  function copiarLinkAtivo(link, btn) {
+    navigator.clipboard.writeText(link).then(() => {
+      btn.textContent = 'Copiado!';
+      setTimeout(() => btn.textContent = 'Copiar', 2000);
+    });
+  }
+
+  function confirmarRevogar(token, nome) {
+    if (confirm(`Revogar o link de "${nome}"?\nA pessoa perderá acesso imediatamente.`)) {
+      revogarLink(token);
+    }
+  }
+
+  function revogarLink(token) {
+    saveLinks(getLinks().filter(l => l.token !== token));
+    renderLinks();
+  }
+
+  function renderLinks() {
+    const links = getLinks();
+    const container = document.getElementById('links-list');
+    if (links.length === 0) {
+      container.innerHTML = '<div class="empty-msg">Nenhum link ativo.</div>';
+      return;
+    }
+    container.innerHTML = links.map(l => {
+      const expired = Date.now() > l.expiry;
+      const expiryDate = new Date(l.expiry).toLocaleString('pt-BR');
+      return `
+        <div class="link-item">
+          <div>
+            <div class="link-name">${l.nome} · ${l.cams || 1} câmera(s)</div>
+            <div class="${expired ? 'link-expired' : 'link-expiry'}">
+              ${expired ? 'Expirado' : 'Expira em'} ${expiryDate}
+            </div>
+          </div>
+          <div style="display:flex;gap:0.4rem;">
+            <button class="revoke-btn" style="border-color:var(--gold);color:var(--gold);" onclick="copiarLinkAtivo('${l.link}', this)">Copiar</button>
+            <button class="revoke-btn" onclick="confirmarRevogar('${l.token}', '${l.nome}')">Revogar</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transmissão ao Vivo — Funerária Largo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Jost:wght@300;400&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root{--bg:#0f0e0e;--surface:#1a1818;--border:#2e2b2b;--gold:#c9a84c;--gold-light:#e8c97a;--text:#e8e4e0;--muted:#7a7470;}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;font-weight:300;min-height:100vh;}
+    #error-screen{display:none;min-height:100vh;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:2rem;}
+    .error-icon{font-size:3rem;margin-bottom:1.5rem;opacity:0.4;}
+    .error-title{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:300;margin-bottom:1rem;color:var(--muted);}
+    .error-msg{font-size:0.9rem;color:var(--muted);max-width:400px;line-height:1.7;}
+    #main-screen{display:none;min-height:100vh;flex-direction:column;}
+    header{padding:1.2rem 2rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+    .logo{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:300;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;}
+    .logo-slogan{font-size:0.65rem;color:var(--gold);font-style:italic;letter-spacing:0.05em;margin-top:0.2rem;opacity:0.8;}
+    .live-badge{display:flex;align-items:center;gap:0.5rem;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:#e74c3c;animation:pulse 1.5s infinite;}
+    @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+    .ceremony-info{padding:0.4rem 2rem 0.5rem;text-align:center;border-bottom:1px solid var(--border);}
+    .ceremony-label{font-size:0.65rem;letter-spacing:0.35em;text-transform:uppercase;color:var(--muted);margin-bottom:0.2rem;}
+    .ceremony-row{display:flex;align-items:center;justify-content:center;gap:1rem;}
+    .ceremony-name{font-family:'Cormorant Garamond',serif;font-size:clamp(1.6rem,5vw,2.8rem);font-weight:300;font-style:italic;color:var(--text);}
+    .cam-controls{display:flex;justify-content:center;align-items:center;gap:0.5rem;margin-top:0.4rem;}
+    .ctrl-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:'Jost',sans-serif;font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;padding:0.3rem 0.8rem;cursor:pointer;transition:all 0.2s;width:auto;}
+    .ctrl-btn.active{border-color:var(--gold);color:var(--gold);}
+    .ctrl-btn:hover{border-color:var(--gold);color:var(--gold);}
+    .auto-toggle-wrap{display:flex;align-items:center;gap:0.4rem;cursor:pointer;margin-left:1.2rem;}
+    .auto-label{font-size:0.65rem;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);}
+    .toggle-switch{width:34px;height:18px;background:var(--border);border-radius:9px;position:relative;transition:background 0.3s;}
+    .toggle-switch.on{background:var(--gold);}
+    .toggle-knob{width:12px;height:12px;background:#fff;border-radius:50%;position:absolute;top:3px;left:3px;transition:left 0.3s;}
+    .toggle-switch.on .toggle-knob{left:19px;}
+    .video-container{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:0.4rem 0.75rem 0;background:#090808;}
+    .video-wrapper{width:100%;max-width:1280px;position:relative;}
+    video{width:100%;aspect-ratio:16/9;background:#000;display:block;}
+    .video-border{position:absolute;inset:-1px;border:1px solid var(--border);pointer-events:none;}
+    .loading-overlay{position:absolute;inset:0;background:#090808;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;}
+    .loading-spinner{width:32px;height:32px;border:1px solid var(--border);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .loading-text{font-size:0.75rem;letter-spacing:0.2em;text-transform:uppercase;color:var(--muted);}
+
+    /* BOTÕES DE CÂMERA */
+    .cam-buttons{display:none;position:absolute;top:0.6rem;left:50%;transform:translateX(-50%);z-index:10;display:flex;gap:0.4rem;}
+    .cam-btn{background:rgba(0,0,0,0.6);border:1px solid var(--border);color:var(--muted);font-family:'Jost',sans-serif;font-size:0.7rem;letter-spacing:0.15em;text-transform:uppercase;padding:0.4rem 0.9rem;cursor:pointer;transition:all 0.2s;width:auto;}
+    .cam-btn.active{background:rgba(201,168,76,0.2);border-color:var(--gold);color:var(--gold);}
+    .cam-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* BARRA DE PROGRESSO DA ALTERNÂNCIA */
+    .switch-bar{width:100%;max-width:1280px;height:2px;background:var(--border);margin-top:2px;display:none;}
+    .switch-progress{height:100%;background:var(--gold);width:0%;transition:width linear;}
+
+    .contact-area{width:100%;max-width:1280px;text-align:center;padding:1.2rem 0 0.5rem;}
+    .contact-hint{font-size:0.65rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.3rem;}
+    .contact-link{display:inline-flex;align-items:center;gap:0.5rem;color:var(--gold);text-decoration:none;font-size:0.78rem;letter-spacing:0.08em;opacity:0.8;transition:opacity 0.2s;}
+    .contact-link:hover{opacity:1;}
+
+    footer{padding:1rem 2rem;border-top:1px solid var(--border);text-align:center;font-size:0.7rem;color:var(--muted);letter-spacing:0.05em;}
+    .divider{display:inline-block;margin:0 0.8rem;opacity:0.3;}
+    .slogan{font-style:italic;}
+  </style>
+</head>
+<body>
+
+<div id="error-screen">
+  <div class="error-icon">✦</div>
+  <div class="error-title">Transmissão Encerrada</div>
+  <div class="error-msg">Este link de transmissão expirou ou foi desativado.<br>Entre em contato com a funerária para mais informações.</div>
+</div>
+
+<div id="main-screen">
+  <header>
+    <div>
+      <div class="logo">Funerária Largo</div>
+      <div class="logo-slogan">Mãos que ajudam na hora da dor</div>
+    </div>
+    <div class="live-badge"><div class="live-dot"></div>Ao Vivo</div>
+  </header>
+
+  <div class="ceremony-info">
+    <div class="ceremony-label">Cerimônia de Velório</div>
+    <div class="ceremony-name" id="ceremony-name">—</div>
+    <div class="cam-controls" id="cam-controls" style="display:none">
+      <button class="ctrl-btn active" id="btn-cam1" onclick="trocarCam(1)">Cam 1</button>
+      <button class="ctrl-btn" id="btn-cam2" onclick="trocarCam(2)">Cam 2</button>
+      <div class="auto-toggle-wrap" onclick="toggleAuto()" id="btn-auto" style="display:none">
+        <span class="auto-label">Trocar câmeras automaticamente</span>
+        <div class="toggle-switch" id="toggle-switch"><div class="toggle-knob"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="video-container">
+    <div class="video-wrapper">
+      <div class="loading-overlay" id="loading">
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loading-text">Conectando à transmissão</div>
+      </div>
+      <video id="video" controls autoplay muted playsinline></video>
+      <div class="video-border"></div>
+    </div>
+    <div class="switch-bar" id="switch-bar">
+      <div class="switch-progress" id="switch-progress"></div>
+    </div>
+    <div class="contact-area">
+      <div class="contact-hint">Precisa de ajuda?</div>
+      <a class="contact-link" href="https://wa.me/5545998350436" target="_blank">💬 Kelly · (45) 99835-0436</a><br style="margin:0.3rem 0">
+      <a class="contact-link" href="https://wa.me/5545998407272" target="_blank">💬 Funerária · (45) 99840-7272</a>
+    </div>
+  </div>
+
+  <footer>
+    <span>Funerária Largo</span>
+    <span class="divider">·</span>
+    <span class="slogan">Mãos que ajudam na hora da dor</span>
+    <span class="divider">·</span>
+    <span>Não compartilhe este link</span>
+  </footer>
+</div>
+
+<script>
+  const SECRET = "largo_fnl_2025";
+  const STREAM_JSON = "https://fnlceuazulpr.github.io/camera/stream.json";
+
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('t');
+
+  let streamData = null;
+  let camAtual = 1;
+  let switchTimer = null;
+  let progressTimer = null;
+  let hlsInstance = null;
+
+  function mostrarErro() {
+    document.getElementById('error-screen').style.display = 'flex';
+    document.getElementById('main-screen').style.display = 'none';
+  }
+
+  function validarToken(token) {
+    try {
+      const decoded = decodeURIComponent(escape(atob(token.replace(/-/g, '+').replace(/_/g, '/'))));
+      const parts = decoded.split('|');
+      if (parts.length !== 6) return null;
+      const [nome, expiry, sessionId, cams, intervalo, hash] = parts;
+      const expectedPayload = nome + "|" + expiry + "|" + sessionId + "|" + cams + "|" + intervalo + "|" + SECRET;
+      const expectedHash = btoa(unescape(encodeURIComponent(expectedPayload))).replace(/=/g, '').substring(0, 16);
+      if (hash !== expectedHash) return null;
+      if (Date.now() > parseInt(expiry)) return null;
+      return { nome, expiry: parseInt(expiry), cams: parseInt(cams), intervalo: parseInt(intervalo) };
+    } catch(e) { return null; }
+  }
+
+  function carregarStream(url) {
+    const video = document.getElementById('video');
+    if (hlsInstance) { hlsInstance.destroy(); hlsInstance = null; }
+
+    if (Hls.isSupported()) {
+      hlsInstance = new Hls({ enableWorker: true });
+      hlsInstance.loadSource(url);
+      hlsInstance.attachMedia(video);
+      hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        document.getElementById('loading').style.display = 'none';
+        video.play().catch(() => {});
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = url;
+      video.addEventListener('loadedmetadata', () => {
+        document.getElementById('loading').style.display = 'none';
+      });
+    }
+  }
+
+  function trocarCam(num) {
+    if (!streamData) return;
+    camAtual = num;
+    document.getElementById('btn-cam1').classList.toggle('active', num === 1);
+    document.getElementById('btn-cam2').classList.toggle('active', num === 2);
+    const url = num === 1 ? streamData.url : streamData.url2;
+    carregarStream(url);
+    reiniciarProgresso();
+  }
+
+  function reiniciarProgresso() {
+    if (!autoAtivo) return;
+    const bar = document.getElementById('switch-progress');
+    const intervalo = (streamData.intervalo || 60) * 1000;
+    bar.style.transition = 'none';
+    bar.style.width = '0%';
+    clearTimeout(switchTimer);
+    setTimeout(() => {
+      bar.style.transition = `width ${intervalo}ms linear`;
+      bar.style.width = '100%';
+    }, 50);
+    switchTimer = setTimeout(() => {
+      trocarCam(camAtual === 1 ? 2 : 1);
+    }, intervalo);
+  }
+
+  let autoAtivo = true;
+
+  function toggleAuto() {
+    autoAtivo = !autoAtivo;
+    const sw = document.getElementById('toggle-switch');
+    if (autoAtivo) {
+      sw.classList.add('on');
+      reiniciarProgresso();
+    } else {
+      sw.classList.remove('on');
+      clearTimeout(switchTimer);
+      const bar = document.getElementById('switch-progress');
+      bar.style.transition = 'none';
+      bar.style.width = '0%';
+    }
+  }
+
+  function iniciarDuasCameras() {
+    if (streamData.cams === 2) {
+      document.getElementById('cam-controls').style.display = 'flex';
+      document.getElementById('btn-auto').style.display = 'flex';
+      document.getElementById('toggle-switch').classList.add('on');
+      document.getElementById('switch-bar').style.display = 'block';
+      reiniciarProgresso();
+    }
+    carregarStream(streamData.url);
+  }
+
+  function buscarStream(tentativa, tokenData) {
+    fetch(STREAM_JSON + '?t=' + Date.now())
+      .then(r => r.json())
+      .then(data => {
+        streamData = data;
+        streamData.cams = tokenData.cams;
+        streamData.intervalo = tokenData.intervalo;
+        if (tokenData.cams === 2) {
+          iniciarDuasCameras();
+        } else {
+          carregarStream(data.url);
+        }
+      })
+      .catch(() => {
+        if (tentativa < 5) {
+          document.getElementById('loading-text').textContent = 'Aguardando transmissão...';
+          setTimeout(() => buscarStream(tentativa + 1, tokenData), 5000);
+        } else {
+          document.getElementById('loading-text').textContent = 'Transmissão temporariamente indisponível';
+        }
+      });
+  }
+
+  if (!token) { mostrarErro(); }
+  else {
+    const dados = validarToken(token);
+    if (!dados) { mostrarErro(); }
+    else {
+      document.getElementById('main-screen').style.display = 'flex';
+      document.getElementById('ceremony-name').textContent = dados.nome;
+      setInterval(() => { if (Date.now() > dados.expiry) mostrarErro(); }, 10000);
+      buscarStream(0, dados);
+    }
+  }
+</script>
+</body>
+</html>
