@@ -223,9 +223,12 @@
 
   async function encurtarLink(url) {
     try {
-      const resp = await fetch('https://is.gd/create.php?format=json&url=' + encodeURIComponent(url));
-      const data = await resp.json();
-      return data.shorturl || null;
+      const resp = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url));
+      if (resp.ok) {
+        const shorturl = await resp.text();
+        return shorturl || null;
+      }
+      return null;
     } catch (e) {
       console.error('Erro ao encurtar:', e);
       return null;
