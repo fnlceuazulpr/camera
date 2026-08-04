@@ -223,12 +223,13 @@
 
   async function encurtarLink(url) {
     try {
-      const resp = await fetch('https://tinyurl.com/api-create.php?url=' + encodeURIComponent(url));
-      if (resp.ok) {
-        const shorturl = await resp.text();
-        return shorturl || null;
-      }
-      return null;
+      const resp = await fetch('https://cleanuri.com/api/v1/shorten', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'url=' + encodeURIComponent(url)
+      });
+      const data = await resp.json();
+      return data.result_url || null;
     } catch (e) {
       console.error('Erro ao encurtar:', e);
       return null;
