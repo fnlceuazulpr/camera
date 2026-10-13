@@ -132,7 +132,7 @@
 
 <script>
   const ADMIN_PASSWORD = "largo2025";
-  const BASE_URL = "https://fnlceuazulpr.github.io/camera/watch/";
+  const BASE_URL = "https://largostream.duckdns.org/watch/";
   const SECRET = "largo_fnl_2025";
   const STORAGE_KEY = "velorio_links";
 
@@ -223,13 +223,9 @@
 
   async function encurtarLink(url) {
     try {
-      const resp = await fetch('https://cleanuri.com/api/v1/shorten', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'url=' + encodeURIComponent(url)
-      });
+      const resp = await fetch('https://is.gd/create.php?format=json&url=' + encodeURIComponent(url));
       const data = await resp.json();
-      return data.result_url || null;
+      return data.shorturl || null;
     } catch (e) {
       console.error('Erro ao encurtar:', e);
       return null;
